@@ -1,6 +1,7 @@
 terraform {
 required_providers {
 google = {
+project = "gcp-prj-sys-cicd-dev"
 source  = "hashicorp/google"
 version = "~> 5.0"
 }
