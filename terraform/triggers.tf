@@ -5,7 +5,7 @@ location = "global"
 service_account = "projects/gcp-prj-sys-cicd-dev/serviceAccounts/297266907191-compute@developer.gserviceaccount.com"
 
 github {
-owner = "HenryLin"
+owner = "HenryLin0-0"
 name  = "gcp-bootstrap"
 push {
 # 註釋：設定為監聽 'main' 分支的推動事件 (PUSH Event)
