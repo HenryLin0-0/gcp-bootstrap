@@ -45,9 +45,16 @@ steps:
   waitFor: ['Plan']
 
 # 將 tfplan 檔案指定為構建工件
-# *** 注意：路徑必須相對於構建根目錄 ***
 artifacts:
   objects:
-    location: 'gs://gcp-prj-sys-cicd-dev/terraform-artifacts/'
-    paths: ['terraform/tfplan'] # 這裡的路徑已更新為 'terraform/tfplan'
-timeout: '1200s' # 設置構建超時時間為 20 分鐘
+    # *** 儲存桶路徑已更新為您指定的 gcp-prj-tfstate-1111 ***
+    location: 'gs://gcp-prj-tfstate-1111/terraform-artifacts/'
+    paths: ['terraform/tfplan']
+
+# *** 新增此區塊來解決錯誤 ***
+options:
+  # 告訴 Cloud Build 只使用 Cloud Logging 進行日誌記錄，
+  # 這樣可以避免指定 logs_bucket 的要求。
+  logging: 'CLOUD_LOGGING_ONLY' 
+
+timeout: '1200s'
