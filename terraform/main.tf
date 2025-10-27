@@ -1,13 +1,15 @@
 terraform {
 required_providers {
 google = {
-project = "gcp-prj-sys-cicd-dev"
 source  = "hashicorp/google"
 version = "~> 5.0"
 }
 }
 }
 
+provider "google" {
+  project = "gcp-prj-sys-cicd-dev"  # 替換為你的 GCP 專案 ID
+}
 
 
 resource "google_service_account" "my_sa" {
