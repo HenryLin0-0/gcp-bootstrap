@@ -17,6 +17,12 @@ steps:
     - 'init'
   env:
     # 如果您使用 GCS 作為後端，Cloud Build 服務帳號會自動處理驗證。
+
+- id: "Refresh"
+  name: "hashicorp/terraform:1.7.0"
+  dir: 'terraform'
+  args:
+    - 'refresh'
     
 # 步驟 2: 建立執行計劃 (tf plan)
 # 此步驟會生成一個執行計劃並將其保存為名為 'tfplan' 的二進位檔案，位於 'terraform/' 目錄內。
