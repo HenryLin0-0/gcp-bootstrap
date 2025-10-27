@@ -1,40 +1,53 @@
-timeout: 3600s
+# Cloud Build 設定檔，用於執行 Terraform init, plan, 和 apply
+#
+# 關鍵事項：
+# 1. 'dir: "terraform"' 屬性會將每個步驟的工作目錄變更為儲存庫中的 './terraform' 子目錄。
+# 2. 為了安全性，通常會將 'plan' 步驟和 'apply' 步驟分開（例如，'plan' 在 PR 階段，'apply' 在合併到主分支後手動或透過特定觸發器執行）。
+# 3. Cloud Build 服務帳戶必須擁有所有必要的權限。
+
 steps:
-  - id: 'setup'
-    name: $_DEFAULT_REGION-docker.pkg.dev/$PROJECT_ID/$_GAR_REPOSITORY/terraform
-    entrypoint: /bin/bash
-    args:
-      - -c
-      - |
-        tf_sa_email=${_TF_SA_EMAIL}
-        if [[ -n ${tf_sa_email} ]]; then
-          echo "Setting up gcloud for impersonation"
-          gcloud config set auth/impersonate_service_account $tf_sa_email
-        fi
-        echo "Adding bucket information to backends"
-        for i in `find -name 'backend.tf'`; do sed -i 's/UPDATE_ME/${_STATE_BUCKET_NAME}/' $i; done
-  - id: 'tf init'
-    name: $_DEFAULT_REGION-docker.pkg.dev/$PROJECT_ID/$_GAR_REPOSITORY/terraform
-    entrypoint: /bin/bash
-    args:
-      - -c
-      - |
-        terraform init
-  - id: 'tf plan'
-    name: $_DEFAULT_REGION-docker.pkg.dev/$PROJECT_ID/$_GAR_REPOSITORY/terraform
-    entrypoint: /bin/bash
-    args:
-      - -c
-      - |
-        terraform plan -input=false -out "$REPO_NAME.tfplan"
-  - id: 'tf apply'
-    name: $_DEFAULT_REGION-docker.pkg.dev/$PROJECT_ID/$_GAR_REPOSITORY/terraform
-    entrypoint: /bin/bash
-    args:
-      - -c
-      - |
-        terraform apply -input=false -auto-approve "$REPO_NAME.tfplan"
+# 步驟 1: 初始化 Terraform (tf init)
+- id: 'Init'
+  # 使用 HashiCorp 官方的 Terraform Docker 映像檔
+  name: 'hashicorp/terraform:1.7.0'
+  # *** 設定工作目錄到您的 Terraform 程式碼路徑 ***
+  dir: 'terraform' 
+  # 執行 'init' 命令
+  args:
+    - 'init'
+  env:
+    # 如果您使用 GCS 作為後端，Cloud Build 服務帳號會自動處理驗證。
+    
+# 步驟 2: 建立執行計劃 (tf plan)
+# 此步驟會生成一個執行計劃並將其保存為名為 'tfplan' 的二進位檔案，位於 'terraform/' 目錄內。
+- id: 'Plan'
+  name: 'hashicorp/terraform:1.7.0'
+  # *** 設定工作目錄到您的 Terraform 程式碼路徑 ***
+  dir: 'terraform'
+  # 執行 'plan' 命令
+  args:
+    - 'plan'
+    - '-out=tfplan'  # 將計劃結果保存
+  # 確保 plan 步驟在 init 步驟完成後才開始
+  waitFor: ['Init']
+
+# 步驟 3: 應用執行計劃 (tf apply)
+# 此步驟會使用上一步保存的 'tfplan' 檔案來應用變更。
+- id: 'Apply'
+  name: 'hashicorp/terraform:1.7.0'
+  # *** 設定工作目錄到您的 Terraform 程式碼路徑 ***
+  dir: 'terraform'
+  # 執行 'apply' 命令
+  args:
+    - 'apply'
+    - 'tfplan'  # 引用上一步保存的計劃檔案 (它位於目前的 dir: 'terraform' 中)
+  # 確保 apply 步驟在 plan 步驟完成後才開始
+  waitFor: ['Plan']
+
+# 將 tfplan 檔案指定為構建工件
+# *** 注意：路徑必須相對於構建根目錄 ***
 artifacts:
   objects:
-    location: 'gs://${_ARTIFACT_BUCKET_NAME}/terraform/cloudbuild/plan/${BUILD_ID}'
-    paths: ['cloudbuild-tf-apply.yaml', '$REPO_NAME.tfplan']
+    location: 'gs://gcp-prj-sys-cicd-dev/terraform-artifacts/'
+    paths: ['terraform/tfplan'] # 這裡的路徑已更新為 'terraform/tfplan'
+timeout: '1200s' # 設置構建超時時間為 20 分鐘
