@@ -1,8 +1,3 @@
-provider "google" {
-project = "gcp-prj-sys-cicd-dev"
-}
-
-
 resource "google_cloudbuild_trigger" "test_trigger" {
 name    = "test1000"
 project = "gcp-prj-sys-cicd-dev"
