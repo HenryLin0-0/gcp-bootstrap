@@ -2,7 +2,7 @@ resource "google_cloudbuild_trigger" "test_trigger" {
 name    = "test1000"
 project = "gcp-prj-sys-cicd-dev"
 location = "global"
-service_account = "projects/gcp-prj-sys-cicd-dev/serviceAccounts/297266907191-compute@developer.gserviceaccount.com"
+service_account = "projects/gcp-prj-sys-cicd-dev/serviceAccounts/cloudbuild-sa@gcp-prj-sys-cicd-dev.iam.gserviceaccount.com"
 
 github {
 owner = "HenryLin0-0"
