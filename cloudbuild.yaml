@@ -6,7 +6,7 @@
 # -------------------------------------------------------------
 substitutions:
   # 執行 Terraform 的服務帳戶 (來自您的 log 分析)
-  _TF_SA_EMAIL: "org-terraform@gcp-prj-seed-0978.iam.gserviceaccount.com" 
+  _TF_SA_EMAIL: "cloudbuild-sa@gcp-prj-sys-cicd-dev.iam.gserviceaccount.com" 
   # 遠端狀態 Bucket 名稱 (來自您的 GCS 配置)
   _STATE_BUCKET_NAME: "gcp-prj-tfstate-1111" 
   # Artifact Bucket 名稱
