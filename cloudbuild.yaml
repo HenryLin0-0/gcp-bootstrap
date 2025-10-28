@@ -1,63 +1,87 @@
 # Cloud Build 設定檔，用於執行 Terraform init, plan, 和 apply
-#
-# 關鍵事項：
-# 1. 'dir: "terraform"' 屬性會將每個步驟的工作目錄變更為儲存庫中的 './terraform' 子目錄。
-# 2. 為了安全性，通常會將 'plan' 步驟和 'apply' 步驟分開（例如，'plan' 在 PR 階段，'apply' 在合併到主分支後手動或透過特定觸發器執行）。
-# 3. Cloud Build 服務帳戶必須擁有所有必要的權限。
+
+# -------------------------------------------------------------
+# 預定義的替換變數 (SUBSTITUTIONS) 
+# 這些變數應由 Cloud Build Trigger 或手動運行時提供。
+# -------------------------------------------------------------
+substitutions:
+  # 執行 Terraform 的服務帳戶 (來自您的 log 分析)
+  _TF_SA_EMAIL: "org-terraform@gcp-prj-seed-0978.iam.gserviceaccount.com" 
+  # 遠端狀態 Bucket 名稱 (來自您的 GCS 配置)
+  _STATE_BUCKET_NAME: "gcp-prj-tfstate-1111" 
+  # Artifact Bucket 名稱
+  _ARTIFACT_BUCKET_NAME: "gcp-prj-tfstate-1111" 
+  # Terraform Runner 映像檔 (使用官方)
+  _TF_IMAGE: "hashicorp/terraform:1.7.0"
+
+timeout: '1200s'
 
 steps:
-# 步驟 1: 初始化 Terraform (tf init)
+# 步驟 1: 設定環境 (包括服務帳戶冒充和後端配置)
+- id: 'Setup-Environment'
+  # 使用 gcloud 映像來處理認證和 GCS 相關操作
+  name: 'gcr.io/cloud-builders/gcloud' 
+  dir: 'terraform'
+  entrypoint: /bin/bash
+  args:
+    - -c
+    - |
+      echo "--- 1. 設定服務帳戶冒充 ---"
+      tf_sa_email=${_TF_SA_EMAIL}
+      if [[ -n ${tf_sa_email} ]]; then
+        # 配置 gcloud 使用指定的 SA 來獲取令牌
+        gcloud config set auth/impersonate_service_account $tf_sa_email
+      fi
+      
+      echo "--- 2. 準備後端配置 ---"
+      # (可選：如果你的 backend.tf 中需要動態替換)
+      # for i in `find -name 'backend.tf'`; do sed -i 's/UPDATE_ME/${_STATE_BUCKET_NAME}/' $i; done
+      
+# 步驟 2: 初始化 Terraform (tf init)
 - id: 'Init'
-  # 使用 HashiCorp 官方的 Terraform Docker 映像檔
-  name: 'hashicorp/terraform:1.7.0'
-  # *** 設定工作目錄到您的 Terraform 程式碼路徑 ***
-  dir: 'terraform' 
-  # 執行 'init' 命令
+  # 使用替換變數來定義映像名稱
+  name: ${_TF_IMAGE} 
+  dir: 'terraform'
   args:
     - 'init'
     - '-input=false'
-    - '-backend-config=bucket=gcp-prj-tfstate-1111'
+    # 🚨 推薦做法：將後端配置從這裡移除，改為定義在 main.tf/versions.tf 中
+    #    Cloud Build 會自動從那裡讀取 Bucket 名稱，或使用 -backend-config。
+    #    這裡使用 -backend-config，確保它覆蓋任何靜態配置
+    - '-backend-config=bucket=${_STATE_BUCKET_NAME}'
     - '-backend-config=prefix=terraform/projects/state'
-  env:
-    # 如果您使用 GCS 作為後端，Cloud Build 服務帳號會自動處理驗證。
-    
-# 步驟 2: 建立執行計劃 (tf plan)
-# 此步驟會生成一個執行計劃並將其保存為名為 'tfplan' 的二進位檔案，位於 'terraform/' 目錄內。
+  waitFor: ['Setup-Environment']
+
+# 步驟 3: 建立執行計劃 (tf plan)
 - id: 'Plan'
-  name: 'hashicorp/terraform:1.7.0'
-  # *** 設定工作目錄到您的 Terraform 程式碼路徑 ***
+  name: ${_TF_IMAGE}
   dir: 'terraform'
-  # 執行 'plan' 命令
   args:
     - 'plan'
-    - '-out=tfplan'  # 將計劃結果保存
-  # 確保 plan 步驟在 init 步驟完成後才開始
+    - '-input=false'
+    - '-out=tfplan'
   waitFor: ['Init']
 
-# 步驟 3: 應用執行計劃 (tf apply)
-# 此步驟會使用上一步保存的 'tfplan' 檔案來應用變更。
+# 步驟 4: 應用執行計劃 (tf apply)
 - id: 'Apply'
-  name: 'hashicorp/terraform:1.7.0'
-  # *** 設定工作目錄到您的 Terraform 程式碼路徑 ***
+  name: ${_TF_IMAGE}
   dir: 'terraform'
-  # 執行 'apply' 命令
   args:
     - 'apply'
-    - 'tfplan'  # 引用上一步保存的計劃檔案 (它位於目前的 dir: 'terraform' 中)
-  # 確保 apply 步驟在 plan 步驟完成後才開始
-  waitFor: ['Plan']
+    - '-input=false'
+    - '-auto-approve' # 🚨 在 apply 階段，這應僅用於 CI/CD 部署
+    - 'tfplan'
+  # 這裡使用 'Plan' 的輸出檔案
+  waitFor: ['Plan'] 
 
 # 將 tfplan 檔案指定為構建工件
 artifacts:
   objects:
-    # *** 儲存桶路徑已更新為您指定的 gcp-prj-tfstate-1111 ***
-    location: 'gs://gcp-prj-tfstate-1111/terraform-artifacts/'
+    # 使用替換變數來定義儲存路徑
+    location: 'gs://${_ARTIFACT_BUCKET_NAME}/terraform-artifacts/${BUILD_ID}/'
+    # 確保路徑與 dir: 'terraform' 相對
     paths: ['terraform/tfplan']
 
-# *** 新增此區塊來解決錯誤 ***
-options:
-  # 告訴 Cloud Build 只使用 Cloud Logging 進行日誌記錄，
-  # 這樣可以避免指定 logs_bucket 的要求。
-  logging: 'CLOUD_LOGGING_ONLY' 
-
-timeout: '1200s'
+# 處理 Cloud Build 服務帳戶的日誌選項 (如果您的觸發器有自定義 SA)
+# options:
+#   logging: 'CLOUD_LOGGING_ONLY'
