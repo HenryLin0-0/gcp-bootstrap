@@ -18,6 +18,7 @@ steps:
     - '-input=false'
     - '-backend-config=bucket=gcp-prj-tfstate-1111'
     - '-backend-config=prefix=terraform/projects/state'
+    - 'import google_service_account.my_sa projects/gcp-prj-sys-cicd-dev/serviceAccounts/sa-cloudbuild-runner@gcp-prj-sys-cicd-dev.iam.gserviceaccount.com'
   env:
     # 如果您使用 GCS 作為後端，Cloud Build 服務帳號會自動處理驗證。
     
