@@ -84,6 +84,6 @@ artifacts:
 
 # 處理 Cloud Build 服務帳戶的日誌選項 (如果您的觸發器有自定義 SA)
 # options:
-   logging: 'CLOUD_LOGGING_ONLY'
+logging: 'CLOUD_LOGGING_ONLY'
 
-   timeout: '1200s'
+timeout: '1200s'
