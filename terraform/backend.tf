@@ -1,6 +1,6 @@
 terraform {
   backend "gcs" {
-    bucket = "gcp-prj-tfstate-86fe"
+    bucket = "gcp-prj-tfstate-1111"
 //    prefix = "terraform/bootstrap/state"
   }
 }
