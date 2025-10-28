@@ -15,6 +15,9 @@ steps:
   # 執行 'init' 命令
   args:
     - 'init'
+    - '-input=false'
+    - '-backend-config=bucket=gcp-prj-tfstate-1111'
+    - '-backend-config=prefix=terraform/projects/state'
   env:
     # 如果您使用 GCS 作為後端，Cloud Build 服務帳號會自動處理驗證。
     
