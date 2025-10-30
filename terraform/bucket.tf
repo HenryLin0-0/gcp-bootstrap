@@ -30,3 +30,12 @@ age = 30
 
 force_destroy = true
 }
+
+resource "google_kms_crypto_key_iam_member" "key_dat_enc_dec" {
+  for_each = toset([
+    "serviceAccount:service-297266907191@gs-project-accounts.iam.gserviceaccount.com",
+   ])
+  crypto_key_id = "projects/gcp-prj-sys-cicd-dev/locations/asia-east1/keyRings/henry-test2/cryptoKeys/henry-cmek-key-2"
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member        = each.key
+}
