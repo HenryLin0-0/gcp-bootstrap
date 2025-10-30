@@ -10,6 +10,10 @@ versioning {
 enabled = true
 }
 
+encryption {
+    default_kms_key_name = "projects/gcp-prj-sys-cicd-dev/locations/global/keyRings/henry-test/cryptoKeys/henry-cmek-key"
+  }
+
 
 uniform_bucket_level_access = true
 
