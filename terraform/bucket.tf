@@ -11,7 +11,7 @@ enabled = true
 }
 
 encryption {
-    default_kms_key_name = "projects/gcp-prj-sys-cicd-dev/locations/global/keyRings/henry-test/cryptoKeys/henry-cmek-key"
+    default_kms_key_name = "projects/gcp-prj-sys-cicd-dev/locations/asia-east1/keyRings/henry-test2/cryptoKeys/henry-cmek-key-2"
   }
 
 
