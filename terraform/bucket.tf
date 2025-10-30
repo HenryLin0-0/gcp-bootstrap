@@ -10,7 +10,6 @@ versioning {
 enabled = true
 }
 
-default_object_acl = []
 
 uniform_bucket_level_access = true
 
