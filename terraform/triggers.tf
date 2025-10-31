@@ -1,4 +1,4 @@
-
+/*
 resource "google_cloudbuild_trigger" "test_trigger" {
 name    = "test1000"
 project = "gcp-prj-sys-cicd-dev"
@@ -24,3 +24,4 @@ description = "The unique ID of the created Cloud Build Trigger."
 value       = google_cloudbuild_trigger.test_trigger.id
 }
 
+*/
